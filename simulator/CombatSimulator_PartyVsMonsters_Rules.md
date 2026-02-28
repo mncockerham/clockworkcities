@@ -11,7 +11,7 @@ For instance I want things like attacks to be independent of other actions, we p
 
 Applying damage should just be told X actor (term for player or monster) the amount of damage and any characteristics of that actor that can affect the damage done.
 
-The final version of the notebook should seperate code, parameters, results and analysis into seperate secions.   I want 1 cell that all the assigned parameters are defined.  We will than have a series of cells that poduce charts and tables explaining the outcome.   Future enhancements will have the ability of multiple scenarios (Repeat until party is dead etc ) this should not affect the outcome of the first cell and what we are working on but you should consider this when creating the code.
+The final version of the notebook separates the python engine and configuration into a clean 2-cell layout. Cell 1 contains all reusable combat functions and graphing logic, while Cell 2 exposes simple parameters (Party lists, Monster lists, MaxRounds) ending with a single execution function that visualizes the results.
 
 
 
@@ -52,7 +52,7 @@ Each combatant requires the following attributes:
     ** Example 1: 4(10) 4 dice 10 target number  4 * 2 + 10 = 18
     ** Example 2: 4(12) 4 dice 12 target number  4 * 2 + 12 = 20
     ** This controlls turn order.  It is only rolled once at the end of combat turn counts down from Highnumber to lowest number, players always win ties against monsters. Ties between monsters, or ties between players, are resolved arbitrarily (e.g., order in the array).
-*   **Target Factor (`target_factor`):** used to calculate the chance of being targeted. This is an array the size of the party. *Note:* Target factors are static for the entire fight and do not recount mid-combat.
+*   **Target Factor (`target_factor`):** An array determining the probability of an Actor being chosen as the target of an attack. The index of the array directly corresponds to the **number of living allies** on that team (`original_size - current_living`). Example: If a Rogue has `[2, 4, 5]` and the party starts with 3, they use 2 while everyone is alive, 4 when one ally drops, and 5 when they are the last one standing.
 
 ### Global Encounter Parameters
 The simulation requires the following configurable levers to be defined, ideally in a single configuration cell:
@@ -73,11 +73,11 @@ The configuration should include distinct sections to define the specific combat
 *   *** M  total health durability  health is less than 50% roll 1 less dice
 *   *** C  total health durability Always roll max dice
 
-** Targeting Maxtrix 
-**  Add all target factors together to get the total target factor of living creatures
-**  Divide each target factor by the total target factor to get the probability of being targeted
-**  *0 Instance Rule:* If the total target factor of all living creatures is 0, all attacks should be randomly assigned to any living creature with equal probability.
-**  optional thought Targeting factor is stable between creatures death may not need to be recalculated every attack
+** Targeting Matrix 
+**  Extract the `target_factor` weighting index for each living target based on their remaining team size.
+**  Add all current weights together to get the total target factor pool.
+**  Divide each combatant's weight by the pool to get their probability of being attacked.
+**  *0 Instance Rule:* If the total weight of all living valid targets evaluates to 0, all attacks are assigned randomly across them with equal probability.
 
 
 
@@ -106,7 +106,7 @@ Outcomes will have 3 results
 * Time out  If the combat goes on for more than `MaxRounds` this is a failure condition as not good for a table RPG
 
 At the end of the simulation, the tool generates summary visualization graphs:
-*   The overall Win % of the Party.
+*   The overall Win Distribution % (Party vs Monsters vs Timeout).
 *   The death risk percentage for each individual party member (calculated only from victorious encounters).
-*   A distribution scale showing the remaining HP of party members that survived the fight.
-*   A box blot of number of rounds for Party Wins 
+*   A boxplot scale showing the distribution of remaining HP of party members that survived the fight.
+*   A Stacked Bar Chart mapping the probability of the combat ending exactly on each Round, visually separated by color for the three Outcome conditions.
