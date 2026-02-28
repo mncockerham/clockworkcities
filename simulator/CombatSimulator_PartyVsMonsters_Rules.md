@@ -1,0 +1,112 @@
+# Design philosophy 
+
+
+I think functionally instead of object based so we should code this as a fucntional program.
+
+Objects are fine for data structures and even some actions if you think it improves the readability and functionality.
+
+This is a working program to help me define rules for a game I am making and we should be able to easily adjust each action and rule.
+
+For instance I want things like attacks to be independent of other actions, we pass in the parameters and it returns the damage.
+
+Applying damage should just be told X actor (term for player or monster) the amount of damage and any characteristics of that actor that can affect the damage done.
+
+The final version of the notebook should seperate code, parameters, results and analysis into seperate secions.   I want 1 cell that all the assigned parameters are defined.  We will than have a series of cells that poduce charts and tables explaining the outcome.   Future enhancements will have the ability of multiple scenarios (Repeat until party is dead etc ) this should not affect the outcome of the first cell and what we are working on but you should consider this when creating the code.
+
+
+
+## Terminology
+To ensure clarity across both the simulation rules and the underlying code, the following terms are used:
+*   **Actor:** Any person, creature, or entity that can roll dice or take actions in combat. The base functional unit of the simulation.
+*   **Player / PC (Player Character):** A specific type of Actor (always Type A - Adapted) that is controlled by a human playing the game.
+*   **Party Member:** Any Actor fighting on the same side as the Players. This encompasses both PCs and any allied NPCs or summoned entities.
+*   **Monster (or Enemy):** The opposing force fighting against the Party. The "Monster" side can logically be composed of any type of Actor (A, B, L, M, C), even humanoid mercenaries or rival adventurers.
+
+# Combat Simulator: Party vs Monsters Rules
+
+This document outlines the mechanics and logic under the hood of the Party vs Monsters Combat Simulator. The simulator runs thousands of Monte Carlo simulations to determine the win probabilities and distribution of outcomes.
+
+## 1. Encounter Configuration
+
+Each combatant (Player Character or Monster) is defined by a profile outlining their stats.
+
+### Profiling a Combatant
+Each combatant requires the following attributes:
+*   **Name:** The identifier for the combatant.
+*   **Type (`type`):** Classifies the tier and degradation rules of the combatant. These apply to both players and allies/enemies:
+    *   **A - Adapted:** Peak of ability. In-universe, they are not affected by environmental degradation (this is the game/lore reason for their stats, distinct from the mechanical `enviroment_factor` impact). Used for PCs and major NPC final bosses.
+    *   **B - Boss:** The next level down. The toughest leader in a major encounter.
+    *   **L - Lieutenant:** Tougher adversary in a fight, but not up to a Boss level.
+    *   **M - Minion:** Basically here to die bad guys.
+    *   **C - Creature:** Animals, forces of nature, etc. Do not degrade. Durability is assigned as appropriate for desired strength.
+*   **Dice (`dice`):** The number of d20s rolled when attacking (ranges from 0 to 10).
+*   ***0 Dice Mechanics:*** If a combatant has 0 dice (either statted as such or reduced via wound/environmental degradation), they roll 2 d20s and take the *highest* (worst) value. In this roll-under system, this effectively functions as "Disadvantage." That single worst result is then compared to the Target number to determine 0, 1, or 2 successes.
+*   **Target (`target`):** The Maximum number required to score a "success" on a d20 (ranges from 1 to 20) rolls higher than the target number generate 0 success.
+*                       ** Rolling target number will count as 2 success 
+*   **Damage (`damage`):** The base damage dealt *per success*, and optionally the maximum number of targets hit.
+    *   *Format 1:* Standard single target (e.g., `4` or `"4"`).
+    *   *Format 2:* Multi-target / AoE (e.g., `"5(3)"` indicates 5 damage per success, hitting up to 3 distinct targets). *Note:* For now, treat multi-attacks as normal 1-success attacks per target, randomly assigning targets using standard rules.
+*   **Durability (`durability`):** Number represents base toughness
+*   **Mitigation (`mitigation`):** [Optional, Default 0] Flat damage reduction applied against each incoming hit. Damage cannot be reduced below 0. Mitigation applies to *each* hit of a multi-target/AoE attack individually.
+*   **Initiative (`initiative`):** is stored as  X(t) X is dice rolled t is target number calcuation is + 2 for every success plust target number
+    ** Example 1: 4(10) 4 dice 10 target number  4 * 2 + 10 = 18
+    ** Example 2: 4(12) 4 dice 12 target number  4 * 2 + 12 = 20
+    ** This controlls turn order.  It is only rolled once at the end of combat turn counts down from Highnumber to lowest number, players always win ties against monsters. Ties between monsters, or ties between players, are resolved arbitrarily (e.g., order in the array).
+*   **Target Factor (`target_factor`):** used to calculate the chance of being targeted. This is an array the size of the party. *Note:* Target factors are static for the entire fight and do not recount mid-combat.
+
+### Global Encounter Parameters
+The simulation requires the following configurable levers to be defined, ideally in a single configuration cell:
+*   **MaxRounds (`MaxRounds`):** The maximum number of combat rounds allowed before the simulation yields a "Time out" failure (e.g., 10).
+*   **Player Environment Factor (`player_enviroment_factor`):** An array listing dice adjustments for the party per round. The last value applies to all subsequent rounds once exhausted. (Default: 0).
+*   **Monster Environment Factor (`monster_enviroment_factor`):** An array listing dice adjustments for the monsters per round. The last value applies to all subsequent rounds once exhausted. (Default: 0).
+
+### Defining Combatants
+The configuration should include distinct sections to define the specific combatants participating:
+*   **Players:** A list or dictionary defining 1 to X Player Characters.
+*   **Monsters:** A list or dictionary defining 1 to X Creatures/Enemies.
+
+** Calculated Values
+* **Health.   This varies on each creature Type and has an impact on dice rolled Health roll adjustments can never reduce dice below 0 dice
+*   *** A  total health durability * 4   When health is less than 25% of total rol 2 less dice When health is less than 50% of total rol 1 less dice
+*   *** B  total health durability * 3 + 10 when health is less than 1/3 roll 2 less dice when health is less than 2/3 roll 1 less dice
+*   *** L  total health durability * 2 + 10 when health is less than 1/2 roll 1 less dice
+*   *** M  total health durability  health is less than 50% roll 1 less dice
+*   *** C  total health durability Always roll max dice
+
+** Targeting Maxtrix 
+**  Add all target factors together to get the total target factor of living creatures
+**  Divide each target factor by the total target factor to get the probability of being targeted
+**  *0 Instance Rule:* If the total target factor of all living creatures is 0, all attacks should be randomly assigned to any living creature with equal probability.
+**  optional thought Targeting factor is stable between creatures death may not need to be recalculated every attack
+
+
+
+---
+
+## 3. Turn Resolution Logic
+
+
+For every living attacker:
+
+### Step A: Generating Raw Damage
+1.  **Success Calculation:** The simulator determines the number of successes rolled based on the combatant's `dice` and `target` stats.
+    *   *Note on Dice Odds:* A typical roll matching the `target` yields 2 successes. A roll under that target number is 1 success. Rolls over the target number yield 0 successes.
+2.  **Base Damage Multiplication:** 
+    `Raw Damage = Total Successes * Base Damage`
+  
+---
+
+## 4. End of Turn & Outcome Tracking
+
+Repeat the combat rounds with any adjustments needed for enviroment, damage, number of actors on each side 
+
+Outcomes will have 3 results
+* Party Wins all monsters are dead
+* Monsters Win all party members are dead
+* Time out  If the combat goes on for more than `MaxRounds` this is a failure condition as not good for a table RPG
+
+At the end of the simulation, the tool generates summary visualization graphs:
+*   The overall Win % of the Party.
+*   The death risk percentage for each individual party member (calculated only from victorious encounters).
+*   A distribution scale showing the remaining HP of party members that survived the fight.
+*   A box blot of number of rounds for Party Wins 
