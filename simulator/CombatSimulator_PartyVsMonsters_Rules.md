@@ -33,27 +33,29 @@ Each combatant (Player Character or Monster) is defined by a profile outlining t
 ### Profiling a Combatant
 Each combatant requires the following attributes:
 *   **Name:** The identifier for the combatant.
-*   **Type (`type`):** Classifies the tier and degradation rules of the combatant. These apply to both players and allies/enemies:
+*   **Type (`t`):** Classifies the tier and degradation rules of the combatant. These apply to both players and allies/enemies:
     *   **A - Adapted:** Peak of ability. In-universe, they are not affected by environmental degradation (this is the game/lore reason for their stats, distinct from the mechanical `enviroment_factor` impact). Used for PCs and major NPC final bosses.
     *   **B - Boss:** The next level down. The toughest leader in a major encounter.
     *   **L - Lieutenant:** Tougher adversary in a fight, but not up to a Boss level.
     *   **M - Minion:** Basically here to die bad guys.
     *   **C - Creature:** Animals, forces of nature, etc. Do not degrade. Durability is assigned as appropriate for desired strength.
-*   **Dice (`dice`):** The number of d20s rolled when attacking (ranges from 0 to 10).
+*   **Dice (`d`):** The number of d20s rolled when attacking (ranges from 0 to 10).
 *   ***0 Dice Mechanics:*** If a combatant has 0 dice (either statted as such or reduced via wound/environmental degradation), they roll 2 d20s and take the *highest* (worst) value. In this roll-under system, this effectively functions as "Disadvantage." That single worst result is then compared to the Target number to determine 0, 1, or 2 successes.
-*   **Target (`target`):** The Maximum number required to score a "success" on a d20 (ranges from 1 to 20) rolls higher than the target number generate 0 success.
+*   **Target (`tgt`):** The Maximum number required to score a "success" on a d20 (ranges from 1 to 20) rolls higher than the target number generate 0 success.
 *                       ** Rolling target number will count as 2 success 
-*   **Damage (`damage`):** The base damage dealt *per success*, and optionally the maximum number of targets hit.
+*   **Damage (`dam`):** The base damage dealt *per success*, and optionally the maximum number of targets hit.
     *   *Format 1:* Standard single target (e.g., `4` or `"4"`).
     *   *Format 2:* Multi-target / AoE (e.g., `"5(3)"` indicates 5 damage per success, hitting up to 3 distinct targets). *Note:* For now, treat multi-attacks as normal 1-success attacks per target, randomly assigning targets using standard rules.
-*   **Durability (`durability`):** Number represents base toughness
-*   **Mitigation (`mitigation`):** [Optional, Default 0] Flat damage reduction applied against each incoming hit. Damage cannot be reduced below 0. Mitigation applies to *each* hit of a multi-target/AoE attack individually.
-*   **Initiative (`initiative`):** is stored as  X(t) X is dice rolled t is target number calcuation is + 2 for every success plust target number
+*   **Durability (`dur`):** Number represents base toughness
+*   **Mitigation (`mit`):** [Optional, Default 0] Flat damage reduction applied against each incoming hit. Damage cannot be reduced below 0. Mitigation applies to *each* hit of a multi-target/AoE attack individually.
+*   **Initiative (`ini`):** is stored as  X(t) X is dice rolled t is target number calcuation is + 2 for every success plust target number
     ** Example 1: 4(10) 4 dice 10 target number  4 * 2 + 10 = 18
     ** Example 2: 4(12) 4 dice 12 target number  4 * 2 + 12 = 20
     ** This controlls turn order.  It is only rolled once at the end of combat turn counts down from Highnumber to lowest number, players always win ties against monsters. Ties between monsters, or ties between players, are resolved arbitrarily (e.g., order in the array).
-*   **Target Factor (`target_factor`):** An array determining the probability of an Actor being chosen as the target of an attack. The index of the array directly corresponds to the **number of living allies** on that team (`original_size - current_living`). Example: If a Rogue has `[2, 4, 5]` and the party starts with 3, they use 2 while everyone is alive, 4 when one ally drops, and 5 when they are the last one standing.
-
+*   **Target Factor (`tf`):** An array determining the probability of an Actor being chosen as the target of an attack. The index of the array directly corresponds to the **number of living allies** on that team (`original_size - current_living`). Example: If a Rogue has `[2, 4, 5]` and the party starts with 3, they use 2 while everyone is alive, 4 when one ally drops, and 5 when they are the last one standing.
+*   **Focus Factor (`ff`):** A percentage value (e.g. 80) representing the chance this combatant will focus fire on a primary target instead of randomly attacking.
+*   **Priority (`pri`):** A string or numerical indicator mapping combatants for priority targeting purposes. Lower values indicate higher priority.
+    
 ### Global Encounter Parameters
 The simulation requires the following configurable levers to be defined, ideally in a single configuration cell:
 *   **MaxRounds (`MaxRounds`):** The maximum number of combat rounds allowed before the simulation yields a "Time out" failure (e.g., 10).
